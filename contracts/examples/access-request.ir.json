@@ -1,0 +1,46 @@
+{
+  "name": "ACCESS REQUEST AUTOMATION",
+  "schemaVersion": 1,
+  "description": "When a Service Desk access-request email arrives, grant the requested access in Amcor Central.",
+  "trigger": {
+    "type": "email_received",
+    "source": "outlook",
+    "conditions": [
+      { "field": "subject", "op": "contains", "value": "Please grant access" }
+    ]
+  },
+  "variables": [
+    { "name": "requestor", "type": "string", "from": "email_body_extract" }
+  ],
+  "steps": [
+    {
+      "id": "s1",
+      "order": 1,
+      "action": "open_application",
+      "target": { "app": "chrome" },
+      "params": {},
+      "rawInstruction": "open chrome",
+      "needsClarification": false
+    },
+    {
+      "id": "s2",
+      "order": 2,
+      "action": "navigate",
+      "target": { "url": null },
+      "params": {},
+      "rawInstruction": "navigate to amcor central",
+      "needsClarification": true,
+      "clarificationQuestion": "What is the URL for Amcor Central?"
+    },
+    {
+      "id": "s3",
+      "order": 3,
+      "action": "type_text",
+      "target": { "selector": null, "label": "search/user field" },
+      "params": { "text": "{{requestor}}" },
+      "rawInstruction": "find the requestor and grant access",
+      "needsClarification": true,
+      "clarificationQuestion": "Which field/screen in Amcor Central is used to find a user and grant access? A screenshot of that page would let me target it precisely."
+    }
+  ]
+}
