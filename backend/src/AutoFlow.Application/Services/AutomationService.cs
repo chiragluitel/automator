@@ -87,6 +87,8 @@ public class AutomationService : IAutomationService
                 UpdatedAt = DateTimeOffset.UtcNow
             };
             await _repo.AddAsync(automation, ct);
+            // Persist automation first so the version FK (AutomationId) can resolve.
+            await _repo.SaveChangesAsync(ct);
         }
 
         // 4. Status reflects whether Claude still needs answers.
@@ -105,7 +107,9 @@ public class AutomationService : IAutomationService
             CreatedAt = DateTimeOffset.UtcNow
         };
         await _repo.AddVersionAsync(version, ct);
+        await _repo.SaveChangesAsync(ct);
 
+        // Now it's safe to point CurrentVersionId back at the persisted version.
         automation.CurrentVersionId = version.Id;
         await _repo.SaveChangesAsync(ct);
 

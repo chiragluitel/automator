@@ -44,6 +44,13 @@ public class PlaywrightExecutor : IStepExecutor
             }
         }
 
+        // In headed mode keep the browser open until the user closes it.
+        if (!_opts.Headless)
+        {
+            _log.LogInformation("Automation complete — close the browser window to finish.");
+            await session.WaitForBrowserCloseAsync();
+        }
+
         return true;
     }
 
@@ -106,7 +113,11 @@ public class PlaywrightExecutor : IStepExecutor
 internal sealed class BrowserSession : IAsyncDisposable
 {
     private static readonly HashSet<string> Browsers =
-        new(StringComparer.OrdinalIgnoreCase) { "chrome", "chromium", "edge", "msedge", "browser" };
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            "chrome", "google chrome", "chromium", "edge", "msedge", "microsoft edge",
+            "firefox", "browser", "safari", "webkit"
+        };
 
     private readonly bool _headless;
     private readonly ILogger _log;
@@ -137,6 +148,14 @@ internal sealed class BrowserSession : IAsyncDisposable
         // Native application — best-effort launch (extend with UI Automation later).
         _log.LogInformation("Launching native application {App}", app);
         Process.Start(new ProcessStartInfo { FileName = app, UseShellExecute = true });
+    }
+
+    public Task WaitForBrowserCloseAsync()
+    {
+        if (_page is null) return Task.CompletedTask;
+        var tcs = new TaskCompletionSource();
+        _page.Close += (_, _) => tcs.TrySetResult();
+        return tcs.Task;
     }
 
     public async ValueTask DisposeAsync()

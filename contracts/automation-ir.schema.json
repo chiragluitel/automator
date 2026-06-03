@@ -31,8 +31,8 @@
           "type": "string",
           "enum": ["manual", "schedule", "email_received", "file_created", "webhook"]
         },
-        "source": { "type": "string", "description": "e.g. outlook, sharepoint" },
-        "schedule": { "type": "string", "description": "cron expression when type=schedule" },
+        "source": { "type": ["string", "null"], "description": "e.g. outlook, sharepoint" },
+        "schedule": { "type": ["string", "null"], "description": "cron expression when type=schedule" },
         "conditions": {
           "type": "array",
           "items": { "$ref": "#/$defs/condition" }
@@ -56,7 +56,7 @@
       "properties": {
         "name": { "type": "string" },
         "type": { "type": "string", "enum": ["string", "number", "boolean", "date"] },
-        "from": { "type": "string", "description": "provenance, e.g. email_body_extract, constant, prompt_user" },
+        "from": { "type": ["string", "null"], "description": "provenance, e.g. email_body_extract, constant, prompt_user" },
         "value": { "description": "literal default when from=constant" }
       }
     },

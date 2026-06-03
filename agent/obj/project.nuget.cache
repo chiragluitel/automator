@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "ZFG3a1wjlSQ=",
+  "dgSpecHash": "HQk0pFqEq04=",
   "success": true,
   "projectFilePath": "/Users/chiragluitel/Documents/Projects/automator/agent/AutoFlow.Agent.csproj",
   "expectedPackageFiles": [
@@ -47,10 +47,7 @@
     "/Users/chiragluitel/.nuget/packages/system.io.pipelines/8.0.0/system.io.pipelines.8.0.0.nupkg.sha512",
     "/Users/chiragluitel/.nuget/packages/system.text.encodings.web/8.0.0/system.text.encodings.web.8.0.0.nupkg.sha512",
     "/Users/chiragluitel/.nuget/packages/system.text.json/8.0.0/system.text.json.8.0.0.nupkg.sha512",
-    "/Users/chiragluitel/.nuget/packages/system.threading.channels/8.0.0/system.threading.channels.8.0.0.nupkg.sha512",
-    "/Users/chiragluitel/.nuget/packages/microsoft.netcore.app.ref/8.0.19/microsoft.netcore.app.ref.8.0.19.nupkg.sha512",
-    "/Users/chiragluitel/.nuget/packages/microsoft.aspnetcore.app.ref/8.0.19/microsoft.aspnetcore.app.ref.8.0.19.nupkg.sha512",
-    "/Users/chiragluitel/.nuget/packages/microsoft.netcore.app.host.osx-arm64/8.0.19/microsoft.netcore.app.host.osx-arm64.8.0.19.nupkg.sha512"
+    "/Users/chiragluitel/.nuget/packages/system.threading.channels/8.0.0/system.threading.channels.8.0.0.nupkg.sha512"
   ],
   "logs": []
 }

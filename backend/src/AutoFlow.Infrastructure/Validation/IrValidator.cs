@@ -59,8 +59,8 @@ public class IrValidator : IIrValidator
           "additionalProperties": false,
           "properties": {
             "type": { "type": "string", "enum": ["manual","schedule","email_received","file_created","webhook"] },
-            "source": { "type": "string" },
-            "schedule": { "type": "string" },
+            "source": { "type": ["string", "null"] },
+            "schedule": { "type": ["string", "null"] },
             "conditions": {
               "type": "array",
               "items": {
@@ -85,7 +85,7 @@ public class IrValidator : IIrValidator
             "properties": {
               "name": { "type": "string" },
               "type": { "type": "string", "enum": ["string","number","boolean","date"] },
-              "from": { "type": "string" },
+              "from": { "type": ["string", "null"] },
               "value": {}
             }
           }
