@@ -156,7 +156,14 @@ public class ClaudeCompilationService : ICompilationService
     - Reference values produced earlier with {{variableName}} in params, and declare those in variables.
     - NEVER emit null for target or any target field. Omit target entirely (do not include the key) when a step has no target (e.g. save_file saving to the current file). Omit target.app rather than setting it to null — only include app for open_application steps.
 
-    Web actions: open_application (target.app = browser name), navigate (target.url), click (target.selector/label), type_text (params.text), select_option (params.value), extract (target.selector/label, params.variable, params.attribute?), wait (params.ms).
+    Web actions: open_application (target.app = browser name), navigate (target.url), click (target.selector/label), type_text (params.text), select_option (params.value), wait (params.ms).
+    extract has two modes — choose based on context:
+    - Web DOM mode: target.selector (CSS) or target.label (visible text), params.variable, params.attribute? — reads a value from the live browser page.
+    - In-memory mode: params.source="{{varName}}", params.attribute="fieldName", params.variable — pulls a named field out of a JSON variable (e.g. the output of read_email). Use this whenever the data is already in a variable, not on a web page.
+
+    Email actions (require classic Outlook to be open):
+    - read_email: params.folder (default "Inbox"), params.last_minutes? (integer, default 30), params.limit? (integer, max emails to return — use 1 for just the latest), params.variable (REQUIRED — name of the variable to store results). Stores a JSON array; each item has subject, from, body, receivedAt.
+    - After read_email, use extract in-memory mode to pull individual fields: params.source="{{emailsVar}}", params.attribute="body", params.variable="bodyVar".
 
     File/Excel actions (use for local Office files; prefer headless ClosedXML over live COM):
     - open_file: params.path — open a local file before any read/write steps.

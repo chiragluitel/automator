@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using AutoFlow.Agent.Models;
 
@@ -16,7 +17,7 @@ public sealed class VariableResolver
 
         var resolvedParams = step.Params.ToDictionary(
             kvp => kvp.Key,
-            kvp => kvp.Value is string s ? (object?)Resolve(s, ctx) : kvp.Value);
+            kvp => AsString(kvp.Value) is string s ? (object?)Resolve(s, ctx) : kvp.Value);
 
         var t = step.Target;
         var resolvedTarget = t is null ? null : t with
@@ -34,4 +35,13 @@ public sealed class VariableResolver
     public string Resolve(string template, ExecutionContext ctx) =>
         VarPattern.Replace(template, m =>
             ctx.Variables.TryGetValue(m.Groups[1].Value, out var val) ? val : m.Value);
+
+    // System.Text.Json deserialises Dictionary<string,object?> values as JsonElement, not string.
+    // Return the underlying string for either representation; null for anything else (arrays, objects, numbers).
+    private static string? AsString(object? value) => value switch
+    {
+        string s => s,
+        JsonElement { ValueKind: JsonValueKind.String } je => je.GetString(),
+        _ => null
+    };
 }

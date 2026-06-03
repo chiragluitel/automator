@@ -26,6 +26,7 @@ builder.Services.AddSingleton<IActionHandler, TypeTextHandler>();
 builder.Services.AddSingleton<IActionHandler, SelectOptionHandler>();
 builder.Services.AddSingleton<IActionHandler, WaitHandler>();
 builder.Services.AddSingleton<IActionHandler, ExtractHandler>();
+builder.Services.AddSingleton<IActionHandler, ReadEmailHandler>();
 
 // File / Excel handlers
 builder.Services.AddSingleton<IActionHandler, OpenFileHandler>();
