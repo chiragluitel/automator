@@ -8,5 +8,5 @@ public interface IStepExecutor
     /// Executes the IR step-by-step, invoking <paramref name="report"/> with progress.
     /// Returns true if every step succeeded.
     /// </summary>
-    Task<bool> ExecuteAsync(AutomationIr ir, Func<StepReport, Task> report, CancellationToken ct = default);
+    Task<bool> ExecuteAsync(Guid runId, AutomationIr ir, Func<StepReport, Task> report, CancellationToken ct = default);
 }

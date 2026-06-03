@@ -6,7 +6,14 @@ namespace AutoFlow.Agent.Models;
 public record AutomationIr
 {
     [JsonPropertyName("name")] public string Name { get; init; } = "";
+    [JsonPropertyName("variables")] public List<IrVariable> Variables { get; init; } = new();
     [JsonPropertyName("steps")] public List<IrStep> Steps { get; init; } = new();
+}
+
+public record IrVariable
+{
+    [JsonPropertyName("name")] public string Name { get; init; } = "";
+    [JsonPropertyName("value")] public string? Value { get; init; }
 }
 
 public record IrStep

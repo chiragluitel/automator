@@ -50,7 +50,7 @@ public class AgentConnection : IAsyncDisposable
         bool success;
         try
         {
-            success = await _executor.ExecuteAsync(dispatch.Definition, async report =>
+            success = await _executor.ExecuteAsync(dispatch.RunId, dispatch.Definition, async report =>
                 await _hub!.InvokeAsync("ReportStep",
                     new AgentStepReportDto(dispatch.RunId, report.StepId, report.StepOrder, report.Status, report.Message)));
         }
