@@ -102,16 +102,18 @@ public class IrValidator : IIrValidator
               "order": { "type": "integer", "minimum": 1 },
               "action": {
                 "type": "string",
-                "enum": ["open_application","navigate","click","type_text","select_option","read_email","extract","wait","condition","loop","api_call"]
+                "enum": ["open_application","navigate","click","type_text","select_option","read_email","extract","wait","condition","loop","api_call","open_file","save_file","read_cell","read_range","set_cell","write_range","press_keys","focus_window"]
               },
               "target": {
-                "type": "object",
+                "type": ["object", "null"],
                 "additionalProperties": true,
                 "properties": {
-                  "app": { "type": "string" },
+                  "app": { "type": ["string", "null"] },
                   "url": { "type": ["string","null"] },
                   "selector": { "type": ["string","null"] },
-                  "label": { "type": ["string","null"] }
+                  "label": { "type": ["string","null"] },
+                  "file": { "type": ["string","null"] },
+                  "sheet": { "type": ["string","null"] }
                 }
               },
               "params": { "type": "object", "additionalProperties": true },

@@ -69,7 +69,7 @@
         "order": { "type": "integer", "minimum": 1 },
         "action": {
           "type": "string",
-          "description": "Controlled vocabulary. Web-first set for MVP; native actions added later.",
+          "description": "Controlled vocabulary. Web actions + native Windows/Office actions.",
           "enum": [
             "open_application",
             "navigate",
@@ -81,18 +81,28 @@
             "wait",
             "condition",
             "loop",
-            "api_call"
+            "api_call",
+            "open_file",
+            "save_file",
+            "read_cell",
+            "read_range",
+            "set_cell",
+            "write_range",
+            "press_keys",
+            "focus_window"
           ]
         },
         "target": {
-          "type": "object",
-          "description": "What the action acts on. Fields used depend on action.",
+          "type": ["object", "null"],
+          "description": "What the action acts on. Fields used depend on action. Omit or set to {} when not applicable — never null.",
           "additionalProperties": true,
           "properties": {
-            "app": { "type": "string", "description": "e.g. chrome, outlook" },
+            "app": { "type": ["string", "null"], "description": "e.g. chrome, outlook. Only set for open_application." },
             "url": { "type": ["string", "null"] },
             "selector": { "type": ["string", "null"], "description": "CSS/role selector for web steps" },
-            "label": { "type": ["string", "null"], "description": "human-visible label, fallback for matching" }
+            "label": { "type": ["string", "null"], "description": "human-visible label; fallback for web, window title for focus_window" },
+            "file": { "type": ["string", "null"], "description": "path to a local file; used by open_file, read_cell, read_range, set_cell, write_range" },
+            "sheet": { "type": ["string", "null"], "description": "worksheet/tab name; used by Excel actions; omit for single-sheet files" }
           }
         },
         "params": {

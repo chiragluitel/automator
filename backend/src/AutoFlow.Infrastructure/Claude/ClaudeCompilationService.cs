@@ -150,10 +150,27 @@ public class ClaudeCompilationService : ICompilationService
     - schemaVersion is always 1. Give steps ids "s1", "s2", ... and sequential order starting at 1.
     - Preserve each step's original text verbatim in rawInstruction.
     - Map the trigger hint to a trigger.type: an email arriving -> "email_received" (source "outlook"); a time/schedule -> "schedule" (set a cron in schedule); nothing clear -> "manual". Add conditions when the hint implies them (e.g. subject contains X).
-    - Only use these actions: open_application, navigate, click, type_text, select_option, read_email, extract, wait, condition, loop, api_call.
+    - Only use these actions: open_application, navigate, click, type_text, select_option, read_email, extract, wait, condition, loop, api_call, open_file, save_file, read_cell, read_range, set_cell, write_range, press_keys, focus_window.
     - Use screenshots to infer concrete targets (URLs, selectors, field labels). When a step lacks the specifics needed to run it reliably (e.g. a URL or which field to use) and you cannot infer it, set needsClarification=true and write one precise clarificationQuestion asking for exactly what you need.
     - Prefer stable web selectors (role/name, label text) over brittle ones. Put human-visible labels in target.label as a fallback.
     - Reference values produced earlier with {{variableName}} in params, and declare those in variables.
+    - NEVER emit null for target or any target field. Omit target entirely (do not include the key) when a step has no target (e.g. save_file saving to the current file). Omit target.app rather than setting it to null — only include app for open_application steps.
+
+    Web actions: open_application (target.app = browser name), navigate (target.url), click (target.selector/label), type_text (params.text), select_option (params.value), extract (target.selector/label, params.variable, params.attribute?), wait (params.ms).
+
+    File/Excel actions (use for local Office files; prefer headless ClosedXML over live COM):
+    - open_file: params.path — open a local file before any read/write steps.
+    - save_file: params.path? — save; omit path to overwrite original.
+    - read_cell: target.file?, target.sheet?, params.cell (e.g. "B3"), params.variable — read one cell into a variable.
+    - read_range: target.file?, target.sheet?, params.range (e.g. "A1:C10"), params.variable — read a range as a JSON 2-D array into a variable.
+    - set_cell: target.file?, target.sheet?, params.cell, params.value — write a value to one cell.
+    - write_range: target.file?, target.sheet?, params.range, params.values (2-D JSON array) — write a block of values.
+    - Omit target.file if only one file is open. Omit target.sheet for single-sheet files.
+    - File paths: always use %USERPROFILE% for the user's home directory (e.g. %USERPROFILE%\Downloads\report.xlsx, %USERPROFILE%\Documents\data.xlsx). Never use a bare filename or a hardcoded username. If the user says "Downloads folder", use %USERPROFILE%\Downloads\.
+
+    Desktop actions (use when driving native Windows apps):
+    - press_keys: params.keys — send keystrokes, e.g. "Ctrl+S", "Enter", "Tab", "Alt+F4".
+    - focus_window: target.label — bring a window whose title contains the label to the foreground.
     """;
 
     // Mirrors the IR contract; guides the model. Strict validation happens server-side after.
@@ -204,14 +221,17 @@ public class ClaudeCompilationService : ICompilationService
             "properties": {
               "id": { "type": "string" },
               "order": { "type": "integer" },
-              "action": { "type": "string", "enum": ["open_application","navigate","click","type_text","select_option","read_email","extract","wait","condition","loop","api_call"] },
+              "action": { "type": "string", "enum": ["open_application","navigate","click","type_text","select_option","read_email","extract","wait","condition","loop","api_call","open_file","save_file","read_cell","read_range","set_cell","write_range","press_keys","focus_window"] },
               "target": {
-                "type": "object",
+                "type": ["object", "null"],
+                "description": "Omit entirely when not applicable. Never set to null explicitly.",
                 "properties": {
-                  "app": { "type": "string" },
+                  "app": { "type": ["string", "null"], "description": "Only for open_application. Omit for all other actions." },
                   "url": { "type": ["string","null"] },
                   "selector": { "type": ["string","null"] },
-                  "label": { "type": ["string","null"] }
+                  "label": { "type": ["string","null"] },
+                  "file": { "type": ["string","null"], "description": "local file path for Excel actions" },
+                  "sheet": { "type": ["string","null"], "description": "worksheet name for Excel actions" }
                 }
               },
               "params": { "type": "object" },

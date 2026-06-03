@@ -32,6 +32,8 @@ public record IrTarget
     [JsonPropertyName("url")] public string? Url { get; init; }
     [JsonPropertyName("selector")] public string? Selector { get; init; }
     [JsonPropertyName("label")] public string? Label { get; init; }
+    [JsonPropertyName("file")] public string? File { get; init; }
+    [JsonPropertyName("sheet")] public string? Sheet { get; init; }
 }
 
 // Realtime payloads exchanged with the hub.

@@ -24,6 +24,8 @@ public sealed class VariableResolver
             Url = t.Url is null ? null : Resolve(t.Url, ctx),
             Selector = t.Selector is null ? null : Resolve(t.Selector, ctx),
             Label = t.Label is null ? null : Resolve(t.Label, ctx),
+            File = t.File is null ? null : Resolve(t.File, ctx),
+            Sheet = t.Sheet is null ? null : Resolve(t.Sheet, ctx),
         };
 
         return step with { Params = resolvedParams, Target = resolvedTarget };

@@ -1,0 +1,84 @@
+{
+  "name": "WEEKLY REPORT SUBMISSION",
+  "schemaVersion": 1,
+  "description": "Read the week's shipment count from a local Excel tracker, then submit it through the Amcor reporting portal.",
+  "trigger": { "type": "manual" },
+  "variables": [
+    { "name": "shipmentCount", "type": "number", "from": "read_cell" },
+    { "name": "reportWeek",    "type": "string", "from": "read_cell" }
+  ],
+  "steps": [
+    {
+      "id": "s1",
+      "order": 1,
+      "action": "open_file",
+      "target": {},
+      "params": { "path": "C:\\Users\\%USERNAME%\\Documents\\Shipments.xlsx" },
+      "rawInstruction": "open the weekly shipments Excel file",
+      "needsClarification": false
+    },
+    {
+      "id": "s2",
+      "order": 2,
+      "action": "read_cell",
+      "target": { "sheet": "Summary" },
+      "params": { "cell": "B2", "variable": "shipmentCount" },
+      "rawInstruction": "read this week's shipment count from cell B2 on the Summary sheet",
+      "needsClarification": false
+    },
+    {
+      "id": "s3",
+      "order": 3,
+      "action": "read_cell",
+      "target": { "sheet": "Summary" },
+      "params": { "cell": "A2", "variable": "reportWeek" },
+      "rawInstruction": "read the week label from A2",
+      "needsClarification": false
+    },
+    {
+      "id": "s4",
+      "order": 4,
+      "action": "open_application",
+      "target": { "app": "chrome" },
+      "params": {},
+      "rawInstruction": "open Chrome",
+      "needsClarification": false
+    },
+    {
+      "id": "s5",
+      "order": 5,
+      "action": "navigate",
+      "target": { "url": "https://reporting.amcor.internal/weekly" },
+      "params": {},
+      "rawInstruction": "navigate to the weekly reporting portal",
+      "needsClarification": false
+    },
+    {
+      "id": "s6",
+      "order": 6,
+      "action": "type_text",
+      "target": { "selector": "#week-field", "label": "Week" },
+      "params": { "text": "{{reportWeek}}" },
+      "rawInstruction": "fill in the week field",
+      "needsClarification": false
+    },
+    {
+      "id": "s7",
+      "order": 7,
+      "action": "type_text",
+      "target": { "selector": "#shipment-count", "label": "Shipment count" },
+      "params": { "text": "{{shipmentCount}}" },
+      "rawInstruction": "enter the shipment count",
+      "needsClarification": false
+    },
+    {
+      "id": "s8",
+      "order": 8,
+      "action": "click",
+      "target": { "selector": "button[type=submit]", "label": "Submit" },
+      "params": {},
+      "rawInstruction": "click submit",
+      "needsClarification": false
+    }
+  ]
+}

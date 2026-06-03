@@ -27,6 +27,18 @@ builder.Services.AddSingleton<IActionHandler, SelectOptionHandler>();
 builder.Services.AddSingleton<IActionHandler, WaitHandler>();
 builder.Services.AddSingleton<IActionHandler, ExtractHandler>();
 
+// File / Excel handlers
+builder.Services.AddSingleton<IActionHandler, OpenFileHandler>();
+builder.Services.AddSingleton<IActionHandler, SaveFileHandler>();
+builder.Services.AddSingleton<IActionHandler, ReadCellHandler>();
+builder.Services.AddSingleton<IActionHandler, ReadRangeHandler>();
+builder.Services.AddSingleton<IActionHandler, SetCellHandler>();
+builder.Services.AddSingleton<IActionHandler, WriteRangeHandler>();
+
+// Desktop handlers
+builder.Services.AddSingleton<IActionHandler, PressKeysHandler>();
+builder.Services.AddSingleton<IActionHandler, FocusWindowHandler>();
+
 // Core execution
 builder.Services.AddSingleton<ActionHandlerRegistry>();
 builder.Services.AddSingleton<VariableResolver>();
