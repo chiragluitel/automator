@@ -73,7 +73,16 @@ public record RunDto(
 
 // ---- Agent <-> server realtime payloads -----------------------------------
 
-public record RunDispatchDto(Guid RunId, AutomationIr Definition);
+/// <summary>
+/// Run dispatch payload sent from backend to agent.
+/// InitialVariables are pre-seeded into ExecutionContext before step 1 runs —
+/// used when a trigger fires (e.g. triggerEmail = the email JSON that matched).
+/// </summary>
+public record RunDispatchDto(
+    Guid RunId,
+    AutomationIr Definition,
+    Dictionary<string, string>? InitialVariables = null
+);
 
 public record AgentStepReportDto(
     Guid RunId,
@@ -84,3 +93,30 @@ public record AgentStepReportDto(
 );
 
 public record AgentRunCompletedDto(Guid RunId, string Status, string? Error);
+
+// ---- Trigger realtime payloads -------------------------------------------
+
+/// <summary>Pushed by the backend to the agent on connect for each active non-manual trigger.</summary>
+public record TriggerConfigDto(
+    Guid TriggerId,
+    Guid AutomationId,
+    string Type,
+    Dictionary<string, string> Conditions
+);
+
+/// <summary>Sent by the agent to the backend when a watched condition fires.</summary>
+public record TriggerFiredDto(
+    Guid TriggerId,
+    Guid AutomationId,
+    Dictionary<string, string> InitialVariables
+);
+
+// ---- Trigger REST DTOs ---------------------------------------------------
+
+public record AutomationTriggerDto(
+    Guid Id,
+    Guid AutomationId,
+    string Type,
+    bool IsActive,
+    Dictionary<string, string> Conditions
+);

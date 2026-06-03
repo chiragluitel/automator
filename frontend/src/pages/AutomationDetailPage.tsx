@@ -8,6 +8,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { StepList } from "@/components/StepList";
 import { RunPanel } from "@/components/RunPanel";
 import { TriggerBadge } from "@/components/TriggerBadge";
+import { TriggerStatusPanel } from "@/components/TriggerStatusPanel";
 import { VersionStatusBadge } from "@/components/StatusBadge";
 import { formatDate } from "@/lib/utils";
 import { useAutomation, useActivateVersion } from "@/hooks/useAutomations";
@@ -117,7 +118,12 @@ export function AutomationDetailPage() {
           {runId && <RunPanel runId={runId} />}
         </div>
 
-        <div>
+        <div className="space-y-4">
+          {/* Show trigger panel for non-manual triggers on active automations */}
+          {isActive && current?.definition.trigger.type !== "manual" && id && (
+            <TriggerStatusPanel automationId={id} />
+          )}
+
           <Card>
             <CardHeader>
               <CardTitle>Versions</CardTitle>

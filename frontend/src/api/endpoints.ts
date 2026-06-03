@@ -2,6 +2,7 @@ import { apiClient } from "@/lib/apiClient";
 import type {
   AutomationDetail,
   AutomationSummary,
+  AutomationTrigger,
   AutomationVersion,
   CompileRequest,
   Run,
@@ -51,4 +52,21 @@ export async function getRun(runId: string): Promise<Run> {
 export async function getAgentStatus(): Promise<{ online: boolean }> {
   const { data } = await apiClient.get<{ online: boolean }>("/api/agents/status");
   return data;
+}
+
+export async function getAutomationTrigger(automationId: string): Promise<AutomationTrigger | null> {
+  try {
+    const { data } = await apiClient.get<AutomationTrigger>(`/api/automations/${automationId}/trigger`);
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+export async function setTriggerActive(
+  automationId: string,
+  triggerId: string,
+  isActive: boolean,
+): Promise<void> {
+  await apiClient.post(`/api/automations/${automationId}/trigger/${triggerId}/active`, { isActive });
 }

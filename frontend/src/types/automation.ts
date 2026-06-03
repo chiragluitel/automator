@@ -123,6 +123,16 @@ export interface Run {
   stepLogs: RunStepLog[];
 }
 
+// ---- Trigger watcher ----
+
+export interface AutomationTrigger {
+  id: string;
+  automationId: string;
+  type: TriggerType;
+  isActive: boolean;
+  conditions: Record<string, string>;
+}
+
 // ---- Authoring input ----
 
 export interface AuthoredStep {

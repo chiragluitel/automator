@@ -19,6 +19,7 @@ public static class DependencyInjection
                .UseSnakeCaseNamingConvention());
 
         services.AddScoped<IAutomationRepository, AutomationRepository>();
+        services.AddScoped<ITriggerRepository, TriggerRepository>();
         services.AddSingleton<IIrValidator, IrValidator>();
         services.AddSingleton<IAssetStorage, MinioAssetStorage>();
 

@@ -1,3 +1,4 @@
+using AutoFlow.Agent.Execution.Outlook;
 using AutoFlow.Agent.Execution.Sessions;
 using AutoFlow.Agent.Models;
 
@@ -59,6 +60,12 @@ internal static class HandlerHelpers
             ?? throw new InvalidOperationException(
                 "No file is open. Add an 'open_file' step first.");
     }
+
+    // Returns the existing OutlookSession or creates one lazily (async).
+    // Exposed here so handlers that already use HandlerHelpers don't need an extra using.
+    public static Task<OutlookSession> GetOrCreateOutlookSessionAsync(ExecutionContext ctx,
+        Microsoft.Extensions.Logging.ILogger? log = null) =>
+        OutlookComHelper.GetOrCreateAsync(ctx, log);
 
     // Returns the existing DesktopSession or creates one lazily.
     public static DesktopSession GetOrCreateDesktopSession(ExecutionContext ctx)

@@ -93,3 +93,23 @@ public class RunStepLog
     public DateTimeOffset? StartedAt { get; set; }
     public DateTimeOffset? FinishedAt { get; set; }
 }
+
+/// <summary>
+/// Persists a non-manual trigger watcher config for an automation.
+/// One row per automation (upserted when the version is activated).
+/// Conditions is a flat JSON dict matching read_email param names so the
+/// agent can evaluate them without re-parsing the full IR.
+/// </summary>
+public class AutomationTrigger
+{
+    public Guid Id { get; set; }
+    public Guid AutomationId { get; set; }
+    public string Type { get; set; } = "email_received";
+    public bool IsActive { get; set; } = true;
+    /// <summary>JSONB — flat key/value map, e.g. {"from":"sd@amcor.com","subject_contains":"Access"}</summary>
+    public string Conditions { get; set; } = "{}";
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
+
+    public Automation? Automation { get; set; }
+}

@@ -37,11 +37,30 @@ services:
       timeout: 5s
       retries: 5
 
+  db-migrate:
+    image: postgres:16-alpine
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ./db/migrations:/migrations:ro
+    command: >
+      psql
+        --host=db
+        --username=${POSTGRES_USER}
+        --dbname=${POSTGRES_DB}
+        --file=/migrations/02_triggers.sql
+    restart: "no"
+
   backend:
     build: ./backend
     depends_on:
       db:
         condition: service_healthy
+      db-migrate:
+        condition: service_completed_successfully
       minio:
         condition: service_started
     environment:

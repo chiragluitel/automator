@@ -16,19 +16,22 @@ public class AutomationService : IAutomationService
     private readonly IIrValidator _validator;
     private readonly IAssetStorage _assets;
     private readonly ICurrentUser _user;
+    private readonly ITriggerService _triggers;
 
     public AutomationService(
         IAutomationRepository repo,
         ICompilationService compiler,
         IIrValidator validator,
         IAssetStorage assets,
-        ICurrentUser user)
+        ICurrentUser user,
+        ITriggerService triggers)
     {
         _repo = repo;
         _compiler = compiler;
         _validator = validator;
         _assets = assets;
         _user = user;
+        _triggers = triggers;
     }
 
     public async Task<IReadOnlyList<AutomationSummaryDto>> ListAsync(CancellationToken ct = default)
@@ -167,6 +170,10 @@ public class AutomationService : IAutomationService
 
         version.Status = VersionStatus.Active;
         await _repo.SaveChangesAsync(ct);
+
+        // Upsert a trigger watcher record so the agent picks it up on next connect.
+        await _triggers.UpsertForActivationAsync(automationId, ir, ct);
+
         return ToVersionDto(version);
     }
 

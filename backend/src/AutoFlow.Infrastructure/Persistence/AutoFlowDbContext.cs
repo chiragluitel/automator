@@ -16,6 +16,7 @@ public class AutoFlowDbContext : DbContext
     public DbSet<Agent> Agents => Set<Agent>();
     public DbSet<AutomationRun> AutomationRuns => Set<AutomationRun>();
     public DbSet<RunStepLog> RunStepLogs => Set<RunStepLog>();
+    public DbSet<AutomationTrigger> AutomationTriggers => Set<AutomationTrigger>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -74,6 +75,16 @@ public class AutoFlowDbContext : DbContext
         {
             e.ToTable("run_step_logs");
             e.Property(l => l.Status).HasConversion(runStatus);
+        });
+
+        b.Entity<AutomationTrigger>(e =>
+        {
+            e.ToTable("automation_triggers");
+            e.Property(t => t.Conditions).HasColumnType("jsonb");
+            e.HasOne(t => t.Automation)
+                .WithMany()
+                .HasForeignKey(t => t.AutomationId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

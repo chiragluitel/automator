@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using AutoFlow.Agent.Execution.Outlook;
 using AutoFlow.Agent.Execution.Sessions;
 using AutoFlow.Agent.Models;
 using Microsoft.Extensions.Logging;
@@ -30,11 +31,14 @@ public sealed class OpenApplicationHandler : IActionHandler
         ["explorer"]            = "explorer.exe",
     };
 
-    // Office exe names that should also spin up an in-memory OfficeSession.
+    // Office exe names that should also spin up an in-memory ClosedXML OfficeSession.
     private static readonly HashSet<string> OfficeExes = new(StringComparer.OrdinalIgnoreCase)
     {
         "EXCEL.EXE", "WINWORD.EXE", "POWERPNT.EXE"
     };
+
+    // Outlook exe — triggers OutlookSession creation after launch.
+    private const string OutlookExe = "OUTLOOK.EXE";
 
     private readonly IEnumerable<ISessionFactory> _factories;
     private readonly ILogger<OpenApplicationHandler> _log;
@@ -83,13 +87,25 @@ public sealed class OpenApplicationHandler : IActionHandler
                 $"Check the app is installed or supply its full exe path. Inner: {ex.Message}", ex);
         }
 
-        // For Office apps, also create an in-memory ClosedXML workbook so that
-        // set_cell / write_range / save_file steps have something to write to
-        // without needing a separate open_file step.
+        // For Office spreadsheet/document apps: also create an in-memory ClosedXML workbook
+        // so set_cell / write_range / save_file steps have something to write to.
         if (OfficeExes.Contains(exeName) && !ctx.Sessions.ContainsKey(OfficeSession.NewKey))
         {
             ctx.Sessions[OfficeSession.NewKey] = OfficeSession.CreateNew();
             _log.LogInformation("Created blank in-memory workbook for {App}", app);
+        }
+
+        // For Outlook: establish a COM session so email handlers can connect immediately.
+        // We give Outlook 2 seconds to initialise before connecting; the session factory
+        // retries up to 3 times internally, so a slow startup is handled gracefully.
+        if (string.Equals(exeName, OutlookExe, StringComparison.OrdinalIgnoreCase) &&
+            !ctx.Sessions.ContainsKey(OutlookSession.Key))
+        {
+            _log.LogInformation("Waiting for Outlook to initialise…");
+            await Task.Delay(2_000, ctx.CancellationToken);
+            ctx.Sessions[OutlookSession.Key] = await OutlookSession.CreateAsync(
+                ctx.CancellationToken, log: _log);
+            _log.LogInformation("Outlook COM session established");
         }
     }
 

@@ -9,8 +9,13 @@ namespace AutoFlow.Api.Controllers;
 public class AutomationsController : ControllerBase
 {
     private readonly IAutomationService _service;
+    private readonly ITriggerService _triggers;
 
-    public AutomationsController(IAutomationService service) => _service = service;
+    public AutomationsController(IAutomationService service, ITriggerService triggers)
+    {
+        _service = service;
+        _triggers = triggers;
+    }
 
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<AutomationSummaryDto>>> List(CancellationToken ct) =>
@@ -39,4 +44,25 @@ public class AutomationsController : ControllerBase
     public async Task<ActionResult<AutomationVersionDto>> Activate(
         Guid id, Guid versionId, CancellationToken ct) =>
         Ok(await _service.ActivateAsync(id, versionId, ct));
+
+    // ── Trigger endpoints ──────────────────────────────────────────────────
+
+    /// <summary>Returns the trigger watcher config for an automation, or 404 if it is manual.</summary>
+    [HttpGet("{id:guid}/trigger")]
+    public async Task<ActionResult<AutomationTriggerDto>> GetTrigger(Guid id, CancellationToken ct)
+    {
+        var dto = await _triggers.GetForAutomationAsync(id, ct);
+        return dto is null ? NotFound() : Ok(dto);
+    }
+
+    /// <summary>Enables or disables the trigger watcher for an automation.</summary>
+    [HttpPost("{id:guid}/trigger/{triggerId:guid}/active")]
+    public async Task<ActionResult> SetTriggerActive(
+        Guid id, Guid triggerId, [FromBody] SetTriggerActiveRequest body, CancellationToken ct)
+    {
+        await _triggers.SetActiveAsync(triggerId, body.IsActive, ct);
+        return NoContent();
+    }
 }
+
+public record SetTriggerActiveRequest(bool IsActive);

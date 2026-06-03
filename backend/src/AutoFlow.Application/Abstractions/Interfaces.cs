@@ -50,6 +50,7 @@ public interface IAgentConnectionTracker
     void Register(string userEmail, string connectionId);
     void Remove(string connectionId);
     string? GetConnectionForUser(string userEmail);
+    string? GetUserForConnection(string connectionId);
 }
 
 /// <summary>Pushes a run to a connected agent over the realtime channel.</summary>
@@ -71,7 +72,33 @@ public interface IAutomationService
 public interface IRunService
 {
     Task<RunDto> TriggerAsync(Guid automationId, string triggerType, CancellationToken ct = default);
+    /// <summary>
+    /// Creates and dispatches a run initiated by a trigger fire from the agent.
+    /// Bypasses ICurrentUser — uses the provided userEmail for dispatch.
+    /// </summary>
+    Task<RunDto> TriggerByAgentAsync(Guid automationId, string userEmail, Dictionary<string, string>? initialVariables, CancellationToken ct = default);
     Task<RunDto?> GetAsync(Guid runId, CancellationToken ct = default);
     Task RecordStepAsync(AgentStepReportDto report, CancellationToken ct = default);
     Task CompleteAsync(AgentRunCompletedDto completed, CancellationToken ct = default);
+}
+
+/// <summary>Persists and queries automation trigger watcher configurations.</summary>
+public interface ITriggerRepository
+{
+    Task<AutomationTrigger?> GetByAutomationIdAsync(Guid automationId, CancellationToken ct = default);
+    Task<AutomationTrigger?> GetByIdAsync(Guid triggerId, CancellationToken ct = default);
+    Task<IReadOnlyList<AutomationTrigger>> GetActiveForUserEmailAsync(string userEmail, CancellationToken ct = default);
+    Task UpsertAsync(AutomationTrigger trigger, CancellationToken ct = default);
+    Task SaveChangesAsync(CancellationToken ct = default);
+}
+
+/// <summary>Manages trigger watcher lifecycle (upsert on activate, push to agents, enable/disable).</summary>
+public interface ITriggerService
+{
+    /// <summary>Called when a version is activated — creates or refreshes the trigger record from the IR.</summary>
+    Task UpsertForActivationAsync(Guid automationId, AutoFlow.Application.Ir.AutomationIr ir, CancellationToken ct = default);
+    /// <summary>Returns all active trigger configs for the given user — pushed to the agent on connect.</summary>
+    Task<IReadOnlyList<TriggerConfigDto>> GetActiveForUserEmailAsync(string userEmail, CancellationToken ct = default);
+    Task<AutomationTriggerDto?> GetForAutomationAsync(Guid automationId, CancellationToken ct = default);
+    Task SetActiveAsync(Guid triggerId, bool isActive, CancellationToken ct = default);
 }

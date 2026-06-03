@@ -37,9 +37,27 @@ public record IrTarget
 }
 
 // Realtime payloads exchanged with the hub.
-public record RunDispatchDto(Guid RunId, AutomationIr Definition);
+public record RunDispatchDto(
+    Guid RunId,
+    AutomationIr Definition,
+    Dictionary<string, string>? InitialVariables = null
+);
 public record AgentStepReportDto(Guid RunId, string StepId, int StepOrder, string Status, string? Message);
 public record AgentRunCompletedDto(Guid RunId, string Status, string? Error);
+
+// Trigger payloads.
+public record TriggerConfig(
+    Guid TriggerId,
+    Guid AutomationId,
+    string Type,
+    Dictionary<string, string> Conditions
+);
+
+public record TriggerFiredDto(
+    Guid TriggerId,
+    Guid AutomationId,
+    Dictionary<string, string> InitialVariables
+);
 
 // Internal report passed from the executor back to the connection.
 public record StepReport(string StepId, int StepOrder, string Status, string? Message);

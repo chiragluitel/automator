@@ -89,7 +89,15 @@
             "set_cell",
             "write_range",
             "press_keys",
-            "focus_window"
+            "focus_window",
+            "send_email",
+            "reply_email",
+            "forward_email",
+            "move_email",
+            "delete_email",
+            "mark_email",
+            "save_attachment",
+            "create_draft"
           ]
         },
         "target": {

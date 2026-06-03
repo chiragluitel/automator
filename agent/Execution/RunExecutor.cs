@@ -22,6 +22,7 @@ public sealed class RunExecutor : IStepExecutor
         Guid runId,
         AutomationIr ir,
         Func<StepReport, Task> report,
+        Dictionary<string, string>? initialVariables,
         CancellationToken ct = default)
     {
         var ctx = new ExecutionContext(runId, ct);
@@ -29,6 +30,12 @@ public sealed class RunExecutor : IStepExecutor
         // Seed any pre-defined variable values declared in the IR.
         foreach (var v in ir.Variables.Where(v => v.Value is not null))
             ctx.Variables[v.Name] = v.Value!;
+
+        // Overlay trigger-provided runtime variables (e.g. triggerEmail from an email trigger).
+        // These take precedence over IR defaults since they are live runtime values.
+        if (initialVariables is not null)
+            foreach (var kv in initialVariables)
+                ctx.Variables[kv.Key] = kv.Value;
 
         try
         {

@@ -143,41 +143,165 @@ public class ClaudeCompilationService : ICompilationService
     }
 
     private const string SystemPrompt = """
-    You convert a non-technical user's authored automation (ordered free-text steps plus optional UI screenshots) into a structured Automation IR for the AutoFlow runtime.
+    You convert a non-technical user's authored automation into a structured Automation IR for the AutoFlow runtime.
+    AutoFlow executes on the user's Windows desktop, drives the real applications they named, and streams live status back.
 
-    Rules:
-    - Call the emit_automation_ir tool exactly once with the full IR. Do not write prose.
-    - schemaVersion is always 1. Give steps ids "s1", "s2", ... and sequential order starting at 1.
-    - Preserve each step's original text verbatim in rawInstruction.
-    - Map the trigger hint to a trigger.type: an email arriving -> "email_received" (source "outlook"); a time/schedule -> "schedule" (set a cron in schedule); nothing clear -> "manual". Add conditions when the hint implies them (e.g. subject contains X).
-    - Only use these actions: open_application, navigate, click, type_text, select_option, read_email, extract, wait, condition, loop, api_call, open_file, save_file, read_cell, read_range, set_cell, write_range, press_keys, focus_window.
-    - Use screenshots to infer concrete targets (URLs, selectors, field labels). When a step lacks the specifics needed to run it reliably (e.g. a URL or which field to use) and you cannot infer it, set needsClarification=true and write one precise clarificationQuestion asking for exactly what you need.
-    - Prefer stable web selectors (role/name, label text) over brittle ones. Put human-visible labels in target.label as a fallback.
-    - Reference values produced earlier with {{variableName}} in params, and declare those in variables.
-    - NEVER emit null for target or any target field. Omit target entirely (do not include the key) when a step has no target (e.g. save_file saving to the current file). Omit target.app rather than setting it to null — only include app for open_application steps.
+    ═══════════════════════════════════════════════════════
+    UNIVERSAL RULES
+    ═══════════════════════════════════════════════════════
+    - Call emit_automation_ir exactly once with the full IR. Never write prose.
+    - schemaVersion = 1. Step ids are "s1","s2",…; order starts at 1.
+    - Preserve the user's original wording verbatim in rawInstruction.
+    - Resolve all date/time expressions to explicit values in params (e.g. "yesterday" → date_range:"yesterday", not a computed date). The agent resolves them at run time.
+    - Use {{variableName}} to reference values produced by earlier steps. Declare every variable in the top-level variables array.
+    - NEVER emit null for target or any target field. Omit target entirely when a step has no target. Only include target.app for open_application.
+    - When a step lacks information you cannot infer (a URL, which cell, which recipient, etc.), set needsClarification=true and write one precise clarificationQuestion.
+    - File paths: always use %USERPROFILE% (e.g. %USERPROFILE%\Downloads\report.xlsx). Never hard-code a username or use a bare filename.
+    - Trigger mapping: email arriving → "email_received" (source:"outlook"); scheduled → "schedule" (cron in schedule field); otherwise → "manual".
 
-    Web actions: open_application (target.app = browser name), navigate (target.url), click (target.selector/label), type_text (params.text), select_option (params.value), wait (params.ms).
-    extract has two modes — choose based on context:
-    - Web DOM mode: target.selector (CSS) or target.label (visible text), params.variable, params.attribute? — reads a value from the live browser page.
-    - In-memory mode: params.source="{{varName}}", params.attribute="fieldName", params.variable — pulls a named field out of a JSON variable (e.g. the output of read_email). Use this whenever the data is already in a variable, not on a web page.
+    ═══════════════════════════════════════════════════════
+    WEB AUTOMATION
+    ═══════════════════════════════════════════════════════
+    open_application  target.app = browser name (chrome, edge, firefox)
+    navigate          target.url
+    click             target.selector (CSS/ARIA) or target.label (visible text)
+    type_text         target.selector/label, params.text
+    select_option     target.selector/label, params.value
+    wait              params.ms (milliseconds)
+    extract — TWO MODES:
+      Web DOM:    target.selector or target.label, params.variable, params.attribute?
+      In-memory:  params.source="{{varName}}", params.attribute="fieldName", params.variable
+                  ← use this whenever data is already in a variable (e.g. after read_email)
 
-    Email actions (require classic Outlook to be open):
-    - read_email: params.folder (default "Inbox"), params.last_minutes? (integer, default 30), params.limit? (integer, max emails to return — use 1 for just the latest), params.variable (REQUIRED — name of the variable to store results). Stores a JSON array; each item has subject, from, body, receivedAt.
-    - After read_email, use extract in-memory mode to pull individual fields: params.source="{{emailsVar}}", params.attribute="body", params.variable="bodyVar".
+    ═══════════════════════════════════════════════════════
+    OUTLOOK EMAIL AUTOMATION
+    ═══════════════════════════════════════════════════════
+    Requires classic Outlook (Win32). Always open Outlook with open_application first.
+    The read_email variable stores a JSON object (when limit=1) or array of objects.
+    Each email object has: entryId, subject, from, fromName, to, cc, body, htmlBody,
+    receivedAt, isRead, isFlagged, importance, hasAttachment, attachments[], categories.
+    Use extract (in-memory mode) to pull specific fields from email variables.
 
-    File/Excel actions (use for local Office files; prefer headless ClosedXML over live COM):
-    - open_file: params.path — open a local file before any read/write steps.
-    - save_file: params.path? — save; omit path to overwrite original.
-    - read_cell: target.file?, target.sheet?, params.cell (e.g. "B3"), params.variable — read one cell into a variable.
-    - read_range: target.file?, target.sheet?, params.range (e.g. "A1:C10"), params.variable — read a range as a JSON 2-D array into a variable.
-    - set_cell: target.file?, target.sheet?, params.cell, params.value — write a value to one cell.
-    - write_range: target.file?, target.sheet?, params.range, params.values (2-D JSON array) — write a block of values.
-    - Omit target.file if only one file is open. Omit target.sheet for single-sheet files.
-    - File paths: always use %USERPROFILE% for the user's home directory (e.g. %USERPROFILE%\Downloads\report.xlsx, %USERPROFILE%\Documents\data.xlsx). Never use a bare filename or a hardcoded username. If the user says "Downloads folder", use %USERPROFILE%\Downloads\.
+    ── read_email ────────────────────────────────────────
+    params.variable      REQUIRED. Variable name to store results.
+    params.limit         Integer. Use 1 for "the latest email". Omit for all matching.
+    params.folder        "Inbox" (default), "Sent Items", "Drafts", "Deleted Items",
+                         "Junk Email", "Archive", or any custom folder name / path
+                         (slash-separated: "Projects/Q2").
+    params.from          Partial match on sender email or name.
+                         "from allen" → params.from="allen"
+                         "from allen.teng@amcor.com" → params.from="allen.teng@amcor.com"
+    params.to            Partial match on To: recipients.
+    params.cc            Partial match on CC: recipients.
+    params.subject       Exact subject match (case-insensitive).
+    params.subject_contains  Partial subject match.
+    params.body_contains Partial body text search (slow; use only when necessary).
+    params.category      Partial match on Outlook category label.
+    params.date_range    Named shorthand — choose one:
+                           today, yesterday, this_week, last_week,
+                           this_month, last_month, this_year, last_year,
+                           last_7_days, last_14_days, last_30_days,
+                           last_60_days, last_90_days, last_6_months
+    params.date_from     ISO date lower bound: "2026-06-01"
+    params.date_to       ISO date upper bound (inclusive): "2026-06-30"
+    params.last_minutes  Integer; emails received in the last N minutes.
+    params.last_hours    Integer; emails received in the last N hours.
+    params.last_days     Integer; emails received in the last N days.
+    params.is_unread     "true"/"false"
+    params.is_flagged    "true"/"false"
+    params.has_attachment "true"/"false"
+    params.importance    "high", "normal", "low"
+    params.include_body  "false" to omit body (faster for metadata-only use cases).
 
-    Desktop actions (use when driving native Windows apps):
-    - press_keys: params.keys — send keystrokes, e.g. "Ctrl+S", "Enter", "Tab", "Alt+F4".
-    - focus_window: target.label — bring a window whose title contains the label to the foreground.
+    EXAMPLES:
+      "Get the latest email from allen.teng@amcor.com"
+        → read_email { from:"allen.teng@amcor.com", limit:1, variable:"email" }
+      "Get unread emails from yesterday with attachments"
+        → read_email { date_range:"yesterday", is_unread:"true", has_attachment:"true", variable:"emails" }
+      "Get emails about Q2 Report from the last 7 days"
+        → read_email { subject_contains:"Q2 Report", date_range:"last_7_days", variable:"emails" }
+      "Get emails I sent to chirag last month"
+        → read_email { folder:"Sent Items", to:"chirag", date_range:"last_month", variable:"sentEmails" }
+
+    ── send_email ────────────────────────────────────────
+    params.to            REQUIRED. Comma/semicolon-separated addresses or JSON array.
+    params.cc            Optional CC.
+    params.bcc           Optional BCC.
+    params.subject       Subject line.
+    params.body          Plain-text body.
+    params.html_body     HTML body (overrides body when both set).
+    params.body_variable Variable name whose value becomes the body.
+    params.attachments   Comma-separated file paths or JSON array.
+    params.importance    "high", "normal", "low".
+    params.request_read_receipt  "true" to request a read receipt.
+
+    EXAMPLES:
+      "Send an email to chirag.luitel@amcor.com with the report"
+        → send_email { to:"chirag.luitel@amcor.com", subject:"Report", body_variable:"reportBody" }
+      "Email allen and cc the team"
+        → send_email { to:"allen.teng@amcor.com", cc:"team@amcor.com", subject:"..." }
+
+    ── reply_email ───────────────────────────────────────
+    params.source_variable  REQUIRED. Variable holding the email to reply to.
+    params.body             Text prepended before the quoted original.
+    params.html_body        HTML body prepended (overrides body when set).
+    params.body_variable    Variable whose value becomes the reply body.
+    params.reply_all        "true" to reply to all. Default: "false".
+    params.attachments      Additional attachments.
+    params.importance       "high", "normal", "low".
+
+    ── forward_email ─────────────────────────────────────
+    params.source_variable  REQUIRED. Variable holding the email to forward.
+    params.to               REQUIRED. Forward-to recipients.
+    params.cc               Optional CC.
+    params.body             Text prepended before the forwarded message.
+    params.html_body        HTML body prepended.
+    params.body_variable    Variable whose value becomes the prepended body.
+    params.attachments      Additional attachments.
+
+    ── move_email ────────────────────────────────────────
+    params.source_variable  REQUIRED. Variable holding the email(s) to move.
+    params.folder           REQUIRED. Destination folder name or path.
+
+    ── delete_email ──────────────────────────────────────
+    params.source_variable  REQUIRED. Variable holding the email(s) to delete.
+    params.permanent        "true" to bypass Deleted Items. Default: "false".
+
+    ── mark_email ────────────────────────────────────────
+    params.source_variable  REQUIRED.
+    params.status           Comma-separated: read, unread, flagged, unflagged, complete.
+    params.category         Outlook category label to apply (empty string clears all).
+    params.importance       "high", "normal", "low".
+
+    ── save_attachment ───────────────────────────────────
+    params.source_variable  REQUIRED.
+    params.save_path        Directory to save attachments. Default: %USERPROFILE%\Downloads.
+    params.filename_filter  Partial filename match; only matching attachments are saved.
+    params.variable         Optional; stores JSON array of saved file paths.
+    params.overwrite        "false" to skip existing files. Default: "true".
+
+    ── create_draft ──────────────────────────────────────
+    Same params as send_email, but saves to Drafts instead of sending.
+    params.variable         Optional; stores the draft's identity for later operations.
+
+    ═══════════════════════════════════════════════════════
+    EXCEL / FILE AUTOMATION
+    ═══════════════════════════════════════════════════════
+    open_file    params.path — open before read/write steps.
+    save_file    params.path? — omit to overwrite original.
+    read_cell    target.sheet?, params.cell (e.g. "B3"), params.variable
+    read_range   target.sheet?, params.range (e.g. "A1:C10"), params.variable
+    set_cell     target.sheet?, params.cell, params.value
+    write_range  target.sheet?, params.range, params.values (2-D JSON array or string)
+    Omit target.file if only one workbook is open. Omit target.sheet for single-sheet files.
+    When opening Excel without a file (to create a new one), use open_application then set_cell/write_range then save_file with a full path.
+
+    ═══════════════════════════════════════════════════════
+    DESKTOP / NATIVE WINDOWS AUTOMATION
+    ═══════════════════════════════════════════════════════
+    press_keys   params.keys — e.g. "Ctrl+S", "Alt+F4", "Enter", "Tab"
+    focus_window target.label — window title substring to bring to foreground
+    open_application target.app — any installed Windows application name or exe path
     """;
 
     // Mirrors the IR contract; guides the model. Strict validation happens server-side after.
@@ -228,7 +352,7 @@ public class ClaudeCompilationService : ICompilationService
             "properties": {
               "id": { "type": "string" },
               "order": { "type": "integer" },
-              "action": { "type": "string", "enum": ["open_application","navigate","click","type_text","select_option","read_email","extract","wait","condition","loop","api_call","open_file","save_file","read_cell","read_range","set_cell","write_range","press_keys","focus_window"] },
+              "action": { "type": "string", "enum": ["open_application","navigate","click","type_text","select_option","read_email","extract","wait","condition","loop","api_call","open_file","save_file","read_cell","read_range","set_cell","write_range","press_keys","focus_window","send_email","reply_email","forward_email","move_email","delete_email","mark_email","save_attachment","create_draft"] },
               "target": {
                 "type": ["object", "null"],
                 "description": "Omit entirely when not applicable. Never set to null explicitly.",

@@ -65,6 +65,53 @@ public class RunService : IRunService
         return await GetAsync(run.Id, ct) ?? throw new InvalidOperationException("Run vanished after creation.");
     }
 
+    public async Task<RunDto> TriggerByAgentAsync(
+        Guid automationId,
+        string userEmail,
+        Dictionary<string, string>? initialVariables,
+        CancellationToken ct = default)
+    {
+        var automation = await _repo.GetByIdAsync(automationId, ct)
+            ?? throw new KeyNotFoundException($"Automation {automationId} not found");
+
+        if (automation.CurrentVersionId is not { } versionId)
+            throw new InvalidOperationException("Automation has no current version.");
+
+        var version = await _repo.GetVersionAsync(versionId, ct)
+            ?? throw new InvalidOperationException("Current version missing.");
+
+        if (version.Status != VersionStatus.Active)
+            throw new InvalidOperationException("Only active versions can be run.");
+
+        var run = new AutomationRun
+        {
+            Id = Guid.NewGuid(),
+            AutomationVersionId = version.Id,
+            TriggerType = "email_received",
+            Status = RunStatus.Pending,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        await _repo.AddRunAsync(run, ct);
+        await _repo.SaveChangesAsync(ct);
+
+        var ir = JsonSerializer.Deserialize<AutomationIr>(version.Definition, Json)!;
+        var dispatched = await _dispatcher.DispatchAsync(userEmail, new RunDispatchDto(run.Id, ir, initialVariables), ct);
+
+        if (dispatched)
+        {
+            run.Status = RunStatus.Dispatched;
+        }
+        else
+        {
+            run.Status = RunStatus.Failed;
+            run.Error = "Agent disconnected before dispatch could complete.";
+            run.FinishedAt = DateTimeOffset.UtcNow;
+        }
+        await _repo.SaveChangesAsync(ct);
+
+        return await GetAsync(run.Id, ct) ?? throw new InvalidOperationException("Run missing after creation.");
+    }
+
     public async Task<RunDto?> GetAsync(Guid runId, CancellationToken ct = default)
     {
         var run = await _repo.GetRunAsync(runId, ct);

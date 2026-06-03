@@ -102,7 +102,7 @@ public class IrValidator : IIrValidator
               "order": { "type": "integer", "minimum": 1 },
               "action": {
                 "type": "string",
-                "enum": ["open_application","navigate","click","type_text","select_option","read_email","extract","wait","condition","loop","api_call","open_file","save_file","read_cell","read_range","set_cell","write_range","press_keys","focus_window"]
+                "enum": ["open_application","navigate","click","type_text","select_option","read_email","extract","wait","condition","loop","api_call","open_file","save_file","read_cell","read_range","set_cell","write_range","press_keys","focus_window","send_email","reply_email","forward_email","move_email","delete_email","mark_email","save_attachment","create_draft"]
               },
               "target": {
                 "type": ["object", "null"],

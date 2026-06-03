@@ -108,6 +108,26 @@ CREATE TRIGGER trg_automations_updated
     BEFORE UPDATE ON automations
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
+-- ---------------------------------------------------------------------------
+-- Trigger watchers: one row per active non-manual automation trigger.
+-- Conditions is a flat JSONB key-value map matching read_email param names.
+CREATE TABLE automation_triggers (
+    id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    automation_id    uuid NOT NULL REFERENCES automations(id) ON DELETE CASCADE,
+    type             text NOT NULL CHECK (type IN ('email_received','file_created','schedule')),
+    is_active        bool NOT NULL DEFAULT true,
+    conditions       jsonb NOT NULL DEFAULT '{}',
+    created_at       timestamptz NOT NULL DEFAULT now(),
+    updated_at       timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_triggers_automation ON automation_triggers(automation_id);
+CREATE INDEX idx_triggers_active ON automation_triggers(is_active) WHERE is_active = true;
+
+CREATE TRIGGER trg_triggers_updated
+    BEFORE UPDATE ON automation_triggers
+    FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
 -- Seed demo user (MVP, before SSO).
 INSERT INTO users (id, email, display_name)
 VALUES ('00000000-0000-0000-0000-000000000001', 'demo@amcor.com', 'Demo User');

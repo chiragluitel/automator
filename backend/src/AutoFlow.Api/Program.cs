@@ -3,6 +3,7 @@ using AutoFlow.Api.Realtime;
 using AutoFlow.Application.Abstractions;
 using AutoFlow.Application.Services;
 using AutoFlow.Infrastructure;
+using AutoFlow.Application.Contracts;
 
 // Load .env for local `dotnet run`. Docker-compose injects vars directly so this is a no-op there.
 LoadDotEnv();
@@ -20,6 +21,7 @@ builder.Services.AddInfrastructure(builder.Configuration);
 // Application use-case services.
 builder.Services.AddScoped<IAutomationService, AutomationService>();
 builder.Services.AddScoped<IRunService, RunService>();
+builder.Services.AddScoped<ITriggerService, TriggerService>();
 
 // Realtime + identity.
 builder.Services.AddSingleton<IAgentConnectionTracker, InMemoryAgentConnectionTracker>();
